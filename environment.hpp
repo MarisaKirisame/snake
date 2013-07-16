@@ -20,7 +20,9 @@ namespace snake
       char wall;
       char snake;
       char food;
-    }rc;
+      representing_char( ) { }
+      representing_char( char wall, char snake, char food ) : wall( wall ), snake( snake ), food( food ) { }
+    };
 
     enum direction
     {
@@ -31,15 +33,15 @@ namespace snake
     {
       if ( s_food.empty( ) )
       {
-        if ( is_in_map_after_move( down ) )
+        if ( is_alive_after_move( down ) )
         {
           return down;
         }
-        else if ( is_in_map_after_move( up ) )
+        else if ( is_alive_after_move( up ) )
         {
           return up;
         }
-        else if ( is_in_map_after_move( left ) )
+        else if ( is_alive_after_move( left ) )
         {
           return left;
         }
@@ -76,11 +78,14 @@ namespace snake
       return s_snake.size( ) - 1;
     }
 
-    size_t length;
-    size_t width;
     env( ) : is_snake_alive( false ) { }
-    void reset( )
+    env( size_t length, size_t width, representing_char && rc, size_t food_num, list< coord >&& snake )
+    { reset( length, width, move( rc ), food_num, move( snake ) ); }
+
+    void reset( size_t length, size_t width, representing_char && rc, size_t food_num, list< coord >&& snake )
     {
+      this->rc = rc;
+      srand( time( 0 ) );
       vec.clear( );
       is_snake_alive = true;
       assert( length > 0 );
@@ -114,7 +119,6 @@ namespace snake
     }
 
     bool is_game_over( ) const { return ! is_snake_alive; }
-
     bool is_in_map_after_move( direction dir ) const
     {
       switch ( dir )
@@ -132,70 +136,83 @@ namespace snake
       }
     }
 
+    coord get_coord( direction dir ) const
+    {
+      assert( is_in_map_after_move( dir ) );
+      coord next = cur_head;
+      switch ( dir )
+      {
+      case up:
+        --next.first;
+        break;
+      case down:
+        ++next.first;
+        break;
+      case left:
+        --next.second;
+        break;
+      case right:
+        ++next.second;
+        break;
+      default:
+        assert( false );
+      }
+      return next;
+    }
+
+    bool is_alive_after_move( direction dir ) const
+    {
+      if ( is_in_map_after_move( dir ) )
+      {
+        auto next = get_coord( dir );
+        auto next_square = vec[ next.first ][ next.second ];
+        return next_square->can_pass( );
+      }
+      else
+      {
+        return false;
+      }
+    }
+
     void move_snake( direction dir )
     {
       assert( is_snake_alive );
-      if ( ! is_in_map_after_move( dir ) )
+      if ( ! is_alive_after_move( dir ) )
       {
         is_snake_alive = false;
       }
       else
       {
-        coord next = cur_head;
-        switch ( dir )
-        {
-        case up:
-          --next.first;
-          break;
-        case down:
-          ++next.first;
-          break;
-        case left:
-          --next.second;
-          break;
-        case right:
-          ++next.second;
-          break;
-        default:
-          assert( false );
-        }
+        coord next = get_coord( dir );
         auto next_square = vec[ next.first ][ next.second ];
         auto cur_square = vec[ cur_head.first ][ cur_head.second ];
-        if ( next_square->can_pass( ) )
+        size_t previous_space = space_left;
+        next_square->pass( shared_ptr< snake_piece >( new snake_piece
+                                                      ( boost::polymorphic_cast< snake_piece * >( cur_square->get_snake( ).get( ) )->life + 1, * this, move( next ) ) ) );
+        list< coord > zombie_snake_piece;
+        for ( auto & i : s_snake )
         {
-          size_t previous_space = space_left;
-          next_square->pass( shared_ptr< snake_piece >( new snake_piece
-                                                        ( boost::polymorphic_cast< snake_piece * >( cur_square->get_snake( ).get( ) )->life + 1, * this, move( next ) ) ) );
-          list< coord > zombie_snake_piece;
-          for ( auto & i : s_snake )
-          {
-            size_t & life = boost::polymorphic_cast< snake_piece * >( vec[ i.first ][ i.second ]->get_snake( ).get( ) )->life;
-            --life;
-            if ( life == 0 ) { zombie_snake_piece.push_back( i ); }
-          }
-          for ( auto & i : zombie_snake_piece )
-          {
-            assert( boost::polymorphic_cast< snake_piece * >( vec[ i.first ][ i.second ]->get_snake( ).get( ) )->life == 0 );
-            vec[ i.first ][ i.second ]->leave( );
-          }
-          cur_head = next;
-          assert( previous_space >= space_left );
-          assert( space_left +1 >= previous_space );
+          size_t & life = boost::polymorphic_cast< snake_piece * >( vec[ i.first ][ i.second ]->get_snake( ).get( ) )->life;
+          --life;
+          if ( life == 0 ) { zombie_snake_piece.push_back( i ); }
         }
-        else
+        for ( auto & i : zombie_snake_piece )
         {
-          is_snake_alive = false;
+          assert( boost::polymorphic_cast< snake_piece * >( vec[ i.first ][ i.second ]->get_snake( ).get( ) )->life == 0 );
+          vec[ i.first ][ i.second ]->leave( );
         }
+        cur_head = next;
+        assert( previous_space >= space_left );
+        assert( space_left +1 >= previous_space );
       }
     }
-    list< coord > snake;
-    size_t food_num;
   private:
     size_t space_left;
     bool is_snake_alive;
     coord cur_head;
     size_t cur_map_length;
     size_t cur_map_width;
+    representing_char rc;
     struct point
     {
       virtual bool can_pass( ) const = 0;
