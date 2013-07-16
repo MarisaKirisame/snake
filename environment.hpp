@@ -268,7 +268,7 @@ namespace snake
       ~snake_piece( ) noexcept( true ) { point::e.s_snake.erase( point::p ); }
 
       bool can_pass( ) const { return false; }
-      char representing_char( ) const { return '0' + life; }
+      char representing_char( ) const { return e.rc.snake; }
     };
 
     struct food : point
