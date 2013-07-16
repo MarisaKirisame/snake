@@ -126,7 +126,7 @@ namespace snake
       case left:
         return cur_head.second != 0;
       case right:
-        return cur_head.second + 1 < cur_map_length;
+        return cur_head.second + 1 < cur_map_width;
       default:
         assert( false );
       }
