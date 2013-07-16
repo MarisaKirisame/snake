@@ -326,7 +326,7 @@ namespace snake
     {
       assert( e.is_snake_alive );
       os << e.space_left << endl;
-      os << string( e.cur_map_length + 2, e.rc.wall ) << endl;
+      os << string( e.cur_map_width + 2, e.rc.wall ) << endl;
       for( auto & i : e.vec )
       {
         assert( i.size( ) == size_t( e.cur_map_width ) );
@@ -335,7 +335,7 @@ namespace snake
         os << e.rc.wall;
         os << endl;
       }
-      os << string( e.width + 2, e.rc.wall ) << endl;
+      os << string( e.cur_map_width + 2, e.rc.wall ) << endl;
       return os;
     }
   };

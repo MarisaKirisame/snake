@@ -6,8 +6,8 @@ namespace snake
   {
     srand( time( 0 ) );
     env game;
-    game.length = 10;
-    game.width = 10;
+    game.length = 20;
+    game.width = 40;
     game.rc.wall = 'w';
     game.rc.snake = 's';
     game.rc.food = 'f';
