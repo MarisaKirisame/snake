@@ -55,20 +55,47 @@ namespace snake
         auto f_pos = * s_food.begin( );
         if ( f_pos.first > cur_head.first )
         {
-          return down;
+          if ( is_alive_after_move( down ) )
+          {
+            return down;
+          }
         }
         else if ( f_pos.first < cur_head.first )
         {
-          return up;
+          if ( is_alive_after_move( up ) )
+          {
+            return up;
+          }
         }
-        else if ( f_pos.second > cur_head.second )
+        if ( f_pos.second > cur_head.second )
         {
-          return right;
+          if ( is_alive_after_move( right ) )
+          {
+            return right;
+          }
         }
         else
         {
-          assert( f_pos.second < cur_head.second );
+          if ( is_alive_after_move( left ) )
+          {
+            return left;
+          }
+        }
+        if ( is_alive_after_move( down ) )
+        {
+          return down;
+        }
+        else if ( is_alive_after_move( up ) )
+        {
+          return up;
+        }
+        else if ( is_alive_after_move( left ) )
+        {
           return left;
+        }
+        else
+        {
+          return right;
         }
       }
     }
