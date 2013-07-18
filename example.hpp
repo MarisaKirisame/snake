@@ -10,10 +10,9 @@ namespace snake
     while ( ! game.is_game_over( ) )
     {
       auto dir = game.get_dir( );
-      cout << dir << endl;
       cout << game << endl;
       game.move_snake( dir );
-      this_thread::sleep_for( chrono::milliseconds( 100 ) );
+      this_thread::sleep_for( chrono::milliseconds( 50 ) );
     }
     cout << game.score( );
     return 0;

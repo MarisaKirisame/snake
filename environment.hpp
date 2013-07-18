@@ -7,6 +7,7 @@
 #include <memory>
 #include <set>
 #include <boost/cast.hpp>
+#include <boost/concept_check.hpp>
 #include <random>
 using namespace std;
 namespace snake
@@ -263,71 +264,76 @@ namespace snake
         return false;
       }
     }
+
+    static size_t distance( const coord & x, const coord & y )
+    {
+      return max( x.first, y.first ) - min( x.first, y.first ) + max( x.second, y.second ) - min( x.second, y.second );
+    }
+
     bool is_safe_after_move( direction dir ) const
     {
-      if ( is_in_map_after_move( dir ) )
+      if ( is_alive_after_move( dir ) )
       {
         auto next = get_coord( dir );
-        if (  vec[ next.first ][ next.second ]->can_pass( ) )
+        vector< vector< point_status > > map( cur_map_length, vector< point_status >( cur_map_width ) );
+        bool have_starter = false;
+        for ( size_t i = 0; i < cur_map_length; ++i )
         {
-          vector< vector< point_status > > map( cur_map_length, vector< point_status >( cur_map_width ) );
-          bool have_starter = false;
+          for ( size_t ii = 0; ii < cur_map_width; ++ii )
+          {
+            if ( next == make_pair( i, ii ) ) { map[ i ][ ii ] = wall; }
+            else if ( vec[ i ][ ii ]->can_pass_after( distance( make_pair( i, ii ), next ) - 1 ) )
+            {
+              if ( ! have_starter && distance( make_pair( i, ii ), next ) == 1 )
+              {
+                map[ i ][ ii ] = connected_to_others;
+                have_starter = true;
+              }
+              else { map[ i ][ ii ] = not_coonected_to_others_yet; }
+            }
+            else { map[ i ][ ii ] = wall; }
+          }
+        }
+        bool still_calculating = true;
+        while ( still_calculating )
+        {
+          still_calculating = false;
           for ( size_t i = 0; i < cur_map_length; ++i )
           {
             for ( size_t ii = 0; ii < cur_map_width; ++ii )
             {
-              if ( next == make_pair( i, ii ) ) { map[ i ][ ii ] = wall; }
-              else if ( vec[ i ][ ii ]->can_pass( ) )
+
+              if ( ( ! vec[ i ][ ii ]->can_pass( ) && vec[ i ][ ii ]->can_pass_after( distance( make_pair( i, ii ), next ) - 1 ) ) &&
+                        ( ( i > 0 && map[ i - 1 ][ ii ] == connected_to_others ) ||
+                          ( i + 1 < cur_map_length && map[ i +1 ][ ii ] == connected_to_others ) ||
+                          ( ii > 0 && map[ i ][ ii - 1 ] == connected_to_others ) ||
+                          ( ii + 1 < cur_map_width && map[ i ][ ii + 1 ] == connected_to_others ) ) )
               {
-                if ( ! have_starter )
-                {
-                  map[ i ][ ii ] = connected_to_others;
-                  have_starter = true;
-                }
-                else { map[ i ][ ii ] = not_coonected_to_others_yet; }
+                return true;
               }
-              else { map[ i ][ ii ] = wall; }
-            }
-          }
-          bool still_calculating = true;
-          while ( still_calculating )
-          {
-            still_calculating = false;
-            for ( size_t i = 0; i < cur_map_length; ++i )
-            {
-              for ( size_t ii = 0; ii < cur_map_width; ++ii )
+              else if ( ( map[ i ][ ii ] == not_coonected_to_others_yet ) &&
+                        ( ( i > 0 && map[ i - 1 ][ ii ] == connected_to_others ) ||
+                          ( i + 1 < cur_map_length && map[ i +1 ][ ii ] == connected_to_others ) ||
+                          ( ii > 0 && map[ i ][ ii - 1 ] == connected_to_others ) ||
+                          ( ii + 1 < cur_map_width && map[ i ][ ii + 1 ] == connected_to_others ) ) )
               {
-                if (
-                    ( map[ i ][ ii ] == not_coonected_to_others_yet ) &&
-                    (
-                      ( i > 0 && map[ i - 1 ][ ii ] == connected_to_others ) ||
-                      ( i + 1 < cur_map_length && map[ i +1 ][ ii ] == connected_to_others ) ||
-                      ( ii > 0 && map[ i ][ ii - 1 ] == connected_to_others ) ||
-                      ( ii + 1 < cur_map_width && map[ i ][ ii + 1 ] == connected_to_others ) )
-                    )
-                {
-                  map[ i ][ ii ] = connected_to_others;
-                  still_calculating = true;
-                }
+                map[ i ][ ii ] = connected_to_others;
+                still_calculating = true;
               }
             }
           }
-          for ( size_t i = 0; i < cur_map_length; ++i )
-          {
-            for ( size_t ii = 0; ii < cur_map_width; ++ii )
-            {
-              if ( map[ i ][ ii ] == not_coonected_to_others_yet )
-              {
-                return false;
-              }
-            }
-          }
-          return true;
         }
-        else
+        for ( size_t i = 0; i < cur_map_length; ++i )
         {
-          return false;
+          for ( size_t ii = 0; ii < cur_map_width; ++ii )
+          {
+            if ( map[ i ][ ii ] == not_coonected_to_others_yet )
+            {
+              return false;
+            }
+          }
         }
+        return true;
       }
       else
       {
@@ -338,7 +344,7 @@ namespace snake
     void move_snake( direction dir )
     {
       assert( is_snake_alive );
-      if ( ! is_safe_after_move( dir ) )
+      if ( ! is_alive_after_move( dir ) )
       {
         is_snake_alive = false;
       }
@@ -383,6 +389,7 @@ namespace snake
       virtual void leave( ) { assert( false ); }
       virtual shared_ptr< point > get_object_on_top( ) const { assert( false ); }
       virtual shared_ptr< point > get_snake( ) const { assert( false ); }
+      virtual bool can_pass_after( size_t time ) const = 0;
       point( env & e, coord && p ) : e( e ), p( p ) { }
       env & e;
       coord p;
@@ -395,6 +402,11 @@ namespace snake
       {
         if ( obj.get( ) == nullptr ) { return true; }
         else { return obj->can_pass( ); }
+      }
+      bool can_pass_after( size_t time ) const
+      {
+        if ( obj.get( ) == nullptr ) { return true; }
+        else { return obj->can_pass_after( time ); }
       }
       char representing_char( ) const
       {
@@ -447,6 +459,10 @@ namespace snake
 
       bool can_pass( ) const { return false; }
       char representing_char( ) const { return e.rc.snake; }
+      bool can_pass_after( size_t time ) const
+      {
+        return time >= life;
+      }
     };
 
     struct food : point
@@ -458,6 +474,11 @@ namespace snake
       {
         if ( ss.get( ) == nullptr ) { return true; }
         else { return ss->can_pass( ); }
+      }
+      bool can_pass_after( size_t time ) const
+      {
+        if ( ss.get( ) == nullptr ) { return true; }
+        else { return ss->can_pass_after( time ); }
       }
       char representing_char( ) const
       {
