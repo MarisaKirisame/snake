@@ -6,7 +6,7 @@ namespace snake
   {
     int i;
     cin >> i;
-    env game( 20, 40, snake::env::representing_char( 'w', 's', 'f' ), 1, { snake::env::coord( 0,0 ) } );
+    env game( 10, 10, snake::env::representing_char( 'w', 's', 'f' ), 1, { snake::env::coord( 0,0 ) } );
     while ( ! game.is_game_over( ) )
     {
       auto dir = game.get_dir( );

@@ -276,7 +276,6 @@ namespace snake
       {
         auto next = get_coord( dir );
         vector< vector< point_status > > map( cur_map_length, vector< point_status >( cur_map_width ) );
-        bool have_starter = false;
         for ( size_t i = 0; i < cur_map_length; ++i )
         {
           for ( size_t ii = 0; ii < cur_map_width; ++ii )
@@ -284,10 +283,9 @@ namespace snake
             if ( next == make_pair( i, ii ) ) { map[ i ][ ii ] = wall; }
             else if ( vec[ i ][ ii ]->can_pass_after( distance( make_pair( i, ii ), next ) - 1 ) )
             {
-              if ( ! have_starter && distance( make_pair( i, ii ), next ) == 1 )
+              if ( distance( make_pair( i, ii ), next ) == 1 )
               {
                 map[ i ][ ii ] = connected_to_others;
-                have_starter = true;
               }
               else { map[ i ][ ii ] = not_coonected_to_others_yet; }
             }
