@@ -21,8 +21,10 @@ namespace snake
       char wall;
       char snake;
       char food;
+      char head;
+      char tail;
       representing_char( ) { }
-      representing_char( char wall, char snake, char food ) : wall( wall ), snake( snake ), food( food ) { }
+      representing_char( char wall, char snake, char food, char head, char tail ) : wall( wall ), snake( snake ), food( food ), head( head ), tail( tail ) { }
     };
 
     enum direction
@@ -72,6 +74,23 @@ namespace snake
         auto f_pos = * s_food.begin( );
         if ( f_pos.first > cur_head.first )
         {
+          if ( f_pos.first == cur_map_length - 1 )
+          {
+            if ( f_pos.second > cur_head.second )
+            {
+              if ( is_safe_after_move( right ) )
+              {
+                return right;
+              }
+            }
+            else if ( f_pos.second < cur_head.second )
+            {
+              if ( is_safe_after_move( left ) )
+              {
+                return left;
+              }
+            }
+          }
           if ( is_safe_after_move( down ) )
           {
             return down;
@@ -79,6 +98,23 @@ namespace snake
         }
         else if ( f_pos.first < cur_head.first )
         {
+          if ( f_pos.first == 0 )
+          {
+            if ( f_pos.second > cur_head.second )
+            {
+              if ( is_safe_after_move( right ) )
+              {
+                return right;
+              }
+            }
+            else if ( f_pos.second < cur_head.second )
+            {
+              if ( is_safe_after_move( left ) )
+              {
+                return left;
+              }
+            }
+          }
           if ( is_safe_after_move( up ) )
           {
             return up;
@@ -97,6 +133,22 @@ namespace snake
           {
             return left;
           }
+        }
+        if ( is_safe_after_move( down ) )
+        {
+          return down;
+        }
+        else if ( is_safe_after_move( up ) )
+        {
+          return up;
+        }
+        else if ( is_safe_after_move( left ) )
+        {
+          return left;
+        }
+        else if ( is_safe_after_move( right ) )
+        {
+          return right;
         }
         if ( is_safe_after_move( down ) )
         {
@@ -173,6 +225,7 @@ namespace snake
     void reset( size_t length, size_t width, representing_char && rc, size_t food_num, list< coord >&& snake )
     {
       this->rc = rc;
+      food_in_snake = 0;
       srand( time( 0 ) );
       vec.clear( );
       is_snake_alive = true;
@@ -252,6 +305,7 @@ namespace snake
     {
       connected_to_others, not_coonected_to_others_yet, wall
     };
+
     bool is_alive_after_move( direction dir ) const
     {
       if ( is_in_map_after_move( dir ) )
@@ -272,7 +326,11 @@ namespace snake
 
     bool is_safe_after_move( direction dir ) const
     {
-      if ( is_alive_after_move( dir ) )
+      if ( s_snake.size( ) <= 8 )
+      {
+        return is_alive_after_move( dir );
+      }
+      else if ( is_alive_after_move( dir ) )
       {
         auto next = get_coord( dir );
         vector< vector< point_status > > map( cur_map_length, vector< point_status >( cur_map_width ) );
@@ -281,7 +339,7 @@ namespace snake
           for ( size_t ii = 0; ii < cur_map_width; ++ii )
           {
             if ( next == make_pair( i, ii ) ) { map[ i ][ ii ] = wall; }
-            else if ( vec[ i ][ ii ]->can_pass_after( distance( make_pair( i, ii ), next ) - 1 ) )
+            else if ( vec[ i ][ ii ]->can_pass_after( 1 ) )
             {
               if ( distance( make_pair( i, ii ), next ) == 1 )
               {
@@ -301,7 +359,7 @@ namespace snake
             for ( size_t ii = 0; ii < cur_map_width; ++ii )
             {
 
-              if ( ( ! vec[ i ][ ii ]->can_pass( ) && vec[ i ][ ii ]->can_pass_after( distance( make_pair( i, ii ), next ) - 1 ) ) &&
+              if ( ( ! vec[ i ][ ii ]->can_pass( ) && vec[ i ][ ii ]->can_pass_after( min( distance( make_pair( i, ii ), next ) - food_in_snake, distance( make_pair( i, ii ), next ) ) ) ) &&
                         ( ( i > 0 && map[ i - 1 ][ ii ] == connected_to_others ) ||
                           ( i + 1 < cur_map_length && map[ i +1 ][ ii ] == connected_to_others ) ||
                           ( ii > 0 && map[ i ][ ii - 1 ] == connected_to_others ) ||
@@ -321,17 +379,7 @@ namespace snake
             }
           }
         }
-        for ( size_t i = 0; i < cur_map_length; ++i )
-        {
-          for ( size_t ii = 0; ii < cur_map_width; ++ii )
-          {
-            if ( map[ i ][ ii ] == not_coonected_to_others_yet )
-            {
-              return false;
-            }
-          }
-        }
-        return true;
+        return false;
       }
       else
       {
@@ -378,6 +426,7 @@ namespace snake
     size_t cur_map_length;
     size_t cur_map_width;
     representing_char rc;
+    size_t food_in_snake;
     struct point
     {
       virtual bool can_pass( ) const = 0;
@@ -456,7 +505,23 @@ namespace snake
       ~snake_piece( ) noexcept( true ) { point::e.s_snake.erase( point::p ); }
 
       bool can_pass( ) const { return false; }
-      char representing_char( ) const { return e.rc.snake; }
+      char representing_char( ) const
+      {
+        assert( life > 0 );
+
+        if ( point::p == point::e.cur_head )
+        {
+          return point::e.rc.head;
+        }
+        else if ( life == 1 )
+        {
+          return point::e.rc.tail;
+        }
+        else
+        {
+          return e.rc.snake;
+        }
+      }
       bool can_pass_after( size_t time ) const
       {
         return time >= life;
@@ -488,10 +553,15 @@ namespace snake
         assert( ss.get( ) == nullptr );
         ss = sp;
         ++boost::polymorphic_cast< snake_piece * >( sp.get( ) )->life;
+        ++point::e.food_in_snake;
         point::e.s_food.erase( point::p );
         e.gen_food( 1 );
       }
-      void leave( ) { ss.reset( ); }
+      void leave( )
+      {
+        --point::e.food_in_snake;
+        ss.reset( );
+      }
       shared_ptr< point > get_object_on_top( ) const { return ss; }
       shared_ptr< point > get_snake( ) const
       {
