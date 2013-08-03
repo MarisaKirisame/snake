@@ -149,80 +149,80 @@ namespace snake
 
   void cyclic_route::update_route( )
   {
-      assert( ! e.s_food.empty( ) );
-      const coord & f = * e.s_food.begin( );
-      if ( ( e.s_snake.size( ) == 1 ) && ( ! have( e.cur_head ) ) )
+    assert( ! e.s_food.empty( ) );
+    const coord & f = * e.s_food.begin( );
+    if ( ( e.s_snake.size( ) == 1 ) && ( ! have( e.cur_head ) ) )
+    {
+      direction dir;
+      bool break_out = false;
+      list< direction > ld( { up, down, left, right } );
+      for ( auto & i : ld )
       {
-        direction dir;
-        bool break_out = false;
-        list< direction > ld( { up, down, left, right } );
-        for ( auto & i : ld )
+        if ( e.is_alive_after_move( i ) )
         {
-          if ( e.is_alive_after_move( i ) )
-          {
-            dir = i;
-            break_out = true;
-            break;
-          }
-        }
-        assert( break_out );
-        cr[ e.cur_head.y ][ e.cur_head.x ] = make_pair( true, dir );
-        cr[ e.cur_head( dir ).y ][ e.cur_head( dir ).x ] = make_pair( true, dir.reverse( ) );
-        update_route( );
-      }
-      else if ( cr[ f.y ][ f.x ].first == false )
-      {
-        coord i( e.cur_head );
-        size_t min_distance = coord::distance( i, f );
-        coord closest_coord = i;
-        i = i( cr[ e.cur_head.y ][ e.cur_head.x ].second );
-        while ( e.cur_head != i )
-        {
-          size_t dis = coord::distance( i, f );
-          if ( dis < min_distance )
-          {
-            min_distance = dis;
-            closest_coord = i;
-          }
-          assert( cr[ i.y ][ i.x ].first );
-          i = i( cr[ i.y ][ i.x ].second );
-        }
-        if ( closest_coord.is_on_same_line( f ) )
-        {
-          if( ! extend_cyclic_route_thin_rect( closest_coord, f ) ) { assert( false ); }
-        }
-        else
-        {
-          assert( false );
+          dir = i;
+          break_out = true;
+          break;
         }
       }
+      assert( break_out );
+      cr[ e.cur_head.y ][ e.cur_head.x ] = make_pair( true, dir );
+      cr[ e.cur_head( dir ).y ][ e.cur_head( dir ).x ] = make_pair( true, dir.reverse( ) );
+      update_route( );
+    }
+    else if ( cr[ f.y ][ f.x ].first == false )
+    {
+      coord i( e.cur_head );
+      size_t min_distance = coord::distance( i, f );
+      coord closest_coord = i;
+      i = i( cr[ e.cur_head.y ][ e.cur_head.x ].second );
+      while ( e.cur_head != i )
+      {
+        size_t dis = coord::distance( i, f );
+        if ( dis < min_distance )
+        {
+          min_distance = dis;
+          closest_coord = i;
+        }
+        assert( cr[ i.y ][ i.x ].first );
+        i = i( cr[ i.y ][ i.x ].second );
+      }
+      if ( closest_coord.is_on_same_line( f ) )
+      {
+        if( ! extend_cyclic_route_thin_rect( closest_coord, f ) ) { assert( false ); }
+      }
+      else
+      {
+        assert( false );
+      }
+    }
   }
 
   direction cyclic_route::get_dir( )
   {
-      if( need_update( ) ) { update_route( ); }
-      assert( ! need_update( ) );
-      assert( have( e.cur_head ) );
-      return ( * this )[ e.cur_head ];
+    if( need_update( ) ) { update_route( ); }
+    assert( ! need_update( ) );
+    assert( have( e.cur_head ) );
+    return ( * this )[ e.cur_head ];
   }
 
   bool cyclic_route::need_update( ) const
   {
-      if ( ! have( e.cur_head ) )
-      {
-        return true;
-      }
-      coord i = e.cur_head;
-      i = i( ( * this )[ i ] );
-      while ( i != e.cur_head )
-      {
-        i = i( ( * this )[ i ] );
-        if ( e.s_food.find( i ) != e.s_food.end( ) )
-        {
-          return false;
-        }
-      }
+    if ( ! have( e.cur_head ) )
+    {
       return true;
+    }
+    coord i = e.cur_head;
+    i = i( ( * this )[ i ] );
+    while ( i != e.cur_head )
+    {
+      i = i( ( * this )[ i ] );
+      if ( e.s_food.find( i ) != e.s_food.end( ) )
+      {
+        return false;
+      }
+    }
+    return true;
   }
   pair<bool, path> cyclic_route::get_path(const coord & from, const coord & to, size_t min_path_size, size_t max_path_size, const set<coord> & occupied, size_t time) const
   {
@@ -234,7 +234,7 @@ namespace snake
       else if ( max_path_size < coord::distance( from, to ) ||
                 max_path_size < min_path_size ||
                 ( ( ! occupied.empty( ) ) && have( from ) ) ||
-           occupied.find( from ) != occupied.end( ) )
+                occupied.find( from ) != occupied.end( ) )
       {
         return pair< bool, path >( false, path( coord( ) ) );
       }
@@ -281,5 +281,5 @@ namespace snake
         return make_pair( false, path( coord( ) ) );
       }
     }
-}
+  }
 }
