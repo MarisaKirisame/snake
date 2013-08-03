@@ -3,6 +3,7 @@
 #include "cyclic_route.hpp"
 #include "point/snake_piece.hpp"
 #include "point/food.hpp"
+#include "point/space.hpp"
 namespace snake
 {
 
@@ -18,7 +19,7 @@ namespace snake
 
   point * space_factory( env & e, coord && c )
   {
-    return new food( e, move( c ) );
+    return new space( e, move( c ) );
   }
 
   int example( void )

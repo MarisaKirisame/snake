@@ -16,7 +16,7 @@ namespace snake
     void resize( size_t length, size_t width );
     void update_route( const path & p );
 
-    cyclic_route( const env & e ) : e( e ) { }
+    cyclic_route( const env & e ) : e( e ) { resize( e.cur_map_length, e.cur_map_width ); }
     void update_route( );
     bool extend_cyclic_route_thin_rect( const coord & c1, const coord c2 )
     {
@@ -124,6 +124,12 @@ namespace snake
   {
     assert( have( c ) );
     return cr[ c.y ][ c.x ].second;
+  }
+
+  void cyclic_route::resize( size_t length, size_t width )
+  {
+    cr.clear( );
+    cr.resize( length, vector< pair< bool, direction > >( width ) );
   }
 
 }

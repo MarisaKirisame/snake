@@ -12,6 +12,7 @@ namespace snake
     space( env & e, coord && p ) : point( e, move( p ) ) { e.s_space.insert( p ); }
     ~space( ) noexcept( true ) { }
     void pass( shared_ptr< point > sp );
+    void pass( ) { }
     void leave( );
     shared_ptr< point > get_object_on_top( ) const { return obj; }
     shared_ptr< point > get_snake( ) const;
