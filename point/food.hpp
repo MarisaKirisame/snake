@@ -14,7 +14,7 @@ namespace snake
     void leave( );
     shared_ptr< point > get_object_on_top( ) const { return ss; }
     shared_ptr< point > get_snake( ) const;
-    void pass( ) { }
+    void pass( ) { if ( ss.get( ) != nullptr ) { ss->pass( ); } }
   };
 
   bool food::can_pass() const
