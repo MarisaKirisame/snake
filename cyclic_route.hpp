@@ -271,7 +271,7 @@ namespace snake
 
   bool is_food( const env & e, const coord & c )
   {
-    return dynamic_cast< food * >( e.vec[ c.y ][ c.x ].get( ) ) != nullptr;
+    return dynamic_cast< food * >( e.vec[ c.y ][ c.x ]->get_object_on_top( ).get( ) ) != nullptr;
   }
 
   bool cyclic_route::need_update( ) const

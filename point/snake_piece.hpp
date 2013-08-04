@@ -10,7 +10,7 @@ namespace snake
     snake_piece( size_t life, env & e, const coord & p );
     ~snake_piece( ) noexcept( true ) { point::e.s_snake.erase( point::p ); }
     bool can_pass( ) const { return false; }
-    char representing_char( ) const;
+    char representing_char( ) const override;
     size_t can_pass_after( ) const { return life; }
     void leave( ) { }
     void pass( )
