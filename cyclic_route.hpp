@@ -15,8 +15,10 @@ namespace snake
   {
     coord c;
     const cyclic_route & cr;
-    cyclic_route_iterator( const cyclic_route &, coord && );
-    cyclic_route_iterator( const cyclic_route &, const coord & );
+    const coord head;
+    bool is_end;
+    cyclic_route_iterator( const cyclic_route &, coord &&, bool is_end );
+    cyclic_route_iterator( const cyclic_route &, const coord &, bool is_end );
     bool operator ==( const cyclic_route_iterator & );
     bool operator !=( const cyclic_route_iterator & );
     coord operator *( );
@@ -58,7 +60,12 @@ namespace snake
 
   coord cyclic_route_iterator::operator ++ ( )
   {
+    assert( ! is_end );
     c = c( cr[ c ] );
+    if ( c == head )
+    {
+      is_end = true;
+    }
     return * * this;
   }
 
@@ -67,18 +74,17 @@ namespace snake
     return c;
   }
 
-  cyclic_route_iterator::cyclic_route_iterator ( const cyclic_route & cr, const coord & c ) : c( c ), cr( cr ) { }
+  cyclic_route_iterator::cyclic_route_iterator ( const cyclic_route & cr, const coord & c, bool is_end ) : c( c ), cr( cr ), head( c ), is_end( is_end ) { }
 
   bool cyclic_route_iterator::operator == ( const cyclic_route_iterator & i )
   {
     assert( ( & cr ) == ( & i.cr ) );
-    return c == i.c;
+    return ( c == i.c ) && ( is_end == i.is_end );
   }
 
   bool cyclic_route_iterator::operator != ( const cyclic_route_iterator & i )
   {
-    assert( ( & cr ) == ( & i.cr ) );
-    return c != i.c;
+    return ! ( ( * this ) == i );
   }
 
 }
@@ -104,12 +110,19 @@ namespace snake
 
   cyclic_route::iterator cyclic_route::begin( ) const
   {
-    return iterator( * this, e.cur_head );
+    if ( have( e.cur_head ) )
+    {
+      return iterator( * this, e.cur_head, false );
+    }
+    else
+    {
+      return end( );
+    }
   }
 
   cyclic_route::iterator cyclic_route::end( ) const
   {
-    return iterator( * this, e.cur_head );
+    return iterator( * this, e.cur_head, true );
   }
 
   void cyclic_route::update_route( const path & p )
@@ -263,22 +276,7 @@ namespace snake
 
   bool cyclic_route::need_update( ) const
   {
-    return any_of( begin( ), end( ), function< bool ( const coord & ) >( bind( is_food, e, placeholders::_1 ) ) );
-    if ( ! have( e.cur_head ) )
-    {
-      return true;
-    }
-    coord i = e.cur_head;
-    i = i( ( * this )[ i ] );
-    while ( i != e.cur_head )
-    {
-      i = i( ( * this )[ i ] );
-      if ( e.s_food.find( i ) != e.s_food.end( ) )
-      {
-        return false;
-      }
-    }
-    return true;
+    return ! any_of( begin( ), end( ), function< bool ( const coord & ) >( bind( is_food, e, placeholders::_1 ) ) );
   }
 
   pair< bool, path > cyclic_route::get_path(const coord & from, const coord & to, size_t min_path_size, size_t max_path_size, size_t time) const
