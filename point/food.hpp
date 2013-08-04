@@ -1,3 +1,4 @@
+#pragma once
 #include "point.hpp"
 #include "snake_piece.hpp"
 namespace snake
