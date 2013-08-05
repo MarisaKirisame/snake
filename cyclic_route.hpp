@@ -46,8 +46,8 @@ namespace snake
     bool need_update( ) const;
     direction operator [ ] ( const coord & ) const;
     void resize( size_t length, size_t width );
-    void update_route( const path & p );
-    void update_route( );
+    void update( const path & p );
+    void update( );
 
   };
 
@@ -125,7 +125,7 @@ namespace snake
     return iterator( * this, e.cur_head, true );
   }
 
-  void cyclic_route::update_route( const path & p )
+  void cyclic_route::update( const path & p )
   {
     coord c = p.head;
     for ( auto & i : p.dir )
@@ -137,28 +137,19 @@ namespace snake
     }
   }
 
-  void cyclic_route::update_route( )
+  void cyclic_route::update( )
   {
     assert( ! e.s_food.empty( ) );
     const coord & f = * e.s_food.begin( );
     if ( ( e.s_snake.size( ) == 1 ) && ( ! have( e.cur_head ) ) )
     {
-      direction dir;
-      bool break_out = false;
-      list< direction > ld( { up, down, left, right } );
-      for ( auto & i : ld )
-      {
-        if ( e.is_alive_after_move( i ) )
-        {
-          dir = i;
-          break_out = true;
-          break;
-        }
-      }
-      assert( break_out );
-      cr[ e.cur_head.y ][ e.cur_head.x ] = make_pair( true, dir );
-      cr[ e.cur_head( dir ).y ][ e.cur_head( dir ).x ] = make_pair( true, dir.reverse( ) );
-      update_route( );
+      auto to = get_path( e.cur_head, f );
+      assert( to.first );
+      update( to.second );
+      size_t two_if_on_same_line = f.is_on_same_line( e.cur_head ) ? 2 : 0;
+      auto back = get_path( f, e.cur_head, coord::distance( f, e.cur_head ) + two_if_on_same_line, coord::distance( f, e.cur_head ) + two_if_on_same_line, coord::distance( f, e.cur_head ) );
+      assert( back.first );
+      update( back.second );
     }
     else if ( cr[ f.y ][ f.x ].first == false )
     {
@@ -228,7 +219,7 @@ namespace snake
 
   direction cyclic_route::get_dir( )
   {
-    if( need_update( ) ) { update_route( ); }
+    if( need_update( ) ) { update( ); }
     assert( ! need_update( ) );
     assert( have( e.cur_head ) );
     return ( * this )[ e.cur_head ];
@@ -258,10 +249,10 @@ namespace snake
         c3_to_c4.first &&
         c4_to_c1.first )
     {
-      update_route( c1_to_c2.second );
-      update_route( c2_to_c3.second );
-      update_route( c3_to_c4.second );
-      update_route( c4_to_c1.second );
+      update( c1_to_c2.second );
+      update( c2_to_c3.second );
+      update( c3_to_c4.second );
+      update( c4_to_c1.second );
       return true;
     }
     cr[ c1.y ][ c1.x ].first = true;
@@ -286,8 +277,8 @@ namespace snake
 
   pair< bool, path > cyclic_route::get_path(const coord & from, const coord & to, size_t time) const
   {
-      auto dis = coord::distance( from, to );
-      return get_path( from, to, dis, dis, time );
+    auto dis = coord::distance( from, to );
+    return get_path( from, to, dis, dis, time );
   }
 
   pair< bool, path > cyclic_route::get_path( const coord & from, const coord & to ) const
@@ -298,60 +289,58 @@ namespace snake
 
   pair< bool, path > cyclic_route::get_path(const coord & from, const coord & to, size_t min_path_size, size_t max_path_size, const set<coord> & occupied, size_t time) const
   {
+    if ( from == to && min_path_size == 0 )
     {
-      if ( from == to && min_path_size == 0 )
+      return make_pair( true, path( from ) );
+    }
+    else if ( max_path_size < coord::distance( from, to ) ||
+              max_path_size < min_path_size ||
+              ( ( ! occupied.empty( ) ) && have( from ) ) ||
+              occupied.find( from ) != occupied.end( ) )
+    {
+      return pair< bool, path >( false, path( coord( ) ) );
+    }
+    else
+    {
+      set< coord > new_occupied( occupied );
+      new_occupied.insert( from );
+      if ( e.can_pass_to( from, up, time ) )
       {
-        return make_pair( true, path( from ) );
+        pair< bool,  path > up_res( get_path( coord( from( up ) ), to, min_path_size - 1, max_path_size - 1, new_occupied, time + 1 ) );
+        if ( up_res.first )
+        {
+          up_res.second.push_front( up );
+          return up_res;
+        }
       }
-      else if ( max_path_size < coord::distance( from, to ) ||
-                max_path_size < min_path_size ||
-                ( ( ! occupied.empty( ) ) && have( from ) ) ||
-                occupied.find( from ) != occupied.end( ) )
+      if ( e.can_pass_to( from, down, time ) )
       {
-        return pair< bool, path >( false, path( coord( ) ) );
+        pair< bool,  path > down_res( get_path( coord( from( down ) ), to, min_path_size - 1, max_path_size - 1, new_occupied, time + 1 ) );
+        if ( down_res.first )
+        {
+          down_res.second.push_front( down );
+          return down_res;
+        }
       }
-      else
+      if ( e.can_pass_to( from, left, time ) )
       {
-        set< coord > new_occupied( occupied );
-        new_occupied.insert( from );
-        if ( e.can_pass_to( from, up, time ) )
+        pair< bool,  path > left_res( get_path( coord( from( left ) ), to, min_path_size - 1, max_path_size - 1, new_occupied, time + 1 ) );
+        if ( left_res.first )
         {
-          pair< bool,  path > up_res( get_path( coord( from( up ) ), to, min_path_size - 1, max_path_size - 1, new_occupied, time + 1 ) );
-          if ( up_res.first )
-          {
-            up_res.second.push_front( up );
-            return up_res;
-          }
+          left_res.second.push_front( left );
+          return left_res;
         }
-        if ( e.can_pass_to( from, down, time ) )
-        {
-          pair< bool,  path > down_res( get_path( coord( from( down ) ), to, min_path_size - 1, max_path_size - 1, new_occupied, time + 1 ) );
-          if ( down_res.first )
-          {
-            down_res.second.push_front( down );
-            return down_res;
-          }
-        }
-        if ( e.can_pass_to( from, left, time ) )
-        {
-          pair< bool,  path > left_res( get_path( coord( from( left ) ), to, min_path_size - 1, max_path_size - 1, new_occupied, time + 1 ) );
-          if ( left_res.first )
-          {
-            left_res.second.push_front( left );
-            return left_res;
-          }
-        }
-        if ( e.can_pass_to( from, right, time ) )
-        {
-          pair< bool,  path > right_res( get_path( coord( from( right ) ), to, min_path_size - 1, max_path_size - 1, new_occupied, time + 1 ) );
-          if ( right_res.first )
-          {
-            right_res.second.push_front( right );
-            return right_res;
-          }
-        }
-        return make_pair( false, path( coord( ) ) );
       }
+      if ( e.can_pass_to( from, right, time ) )
+      {
+        pair< bool,  path > right_res( get_path( coord( from( right ) ), to, min_path_size - 1, max_path_size - 1, new_occupied, time + 1 ) );
+        if ( right_res.first )
+        {
+          right_res.second.push_front( right );
+          return right_res;
+        }
+      }
+      return make_pair( false, path( coord( ) ) );
     }
   }
 }
