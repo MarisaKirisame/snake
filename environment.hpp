@@ -38,7 +38,7 @@ namespace snake
     bool is_alive_after_move( direction dir ) const;
     bool can_pass_to( const coord &, direction, size_t time = 0 ) const;
     void move_snake( direction dir );
-    void gen_food( size_t num );
+    bool gen_food( size_t num );
     coord cur_head;
     size_t cur_map_length;
     size_t cur_map_width;
@@ -143,18 +143,26 @@ namespace snake
     }
   }
 
-  void env::gen_food( size_t num )
+  bool env::gen_food( size_t num )
   {
-    assert( ! s_space.empty( ) );
-    for ( size_t i = 0; i < num; ++i )
+    if( s_space.empty( ) )
     {
-      size_t dis = rand( ) % s_space.size( );
-      auto it = s_space.begin( );
-      advance( it, dis );
-      assert( it != s_space.end( ) );
-      auto pos = * it;
-      vec[ pos.y ][ pos.x ]->pass( shared_ptr< point >( fact.food_fact( * this, move( pos ) ) ) );
+      return false;
     }
+    else
+    {
+      for ( size_t i = 0; i < num; ++i )
+      {
+        size_t dis = rand( ) % s_space.size( );
+        auto it = s_space.begin( );
+        advance( it, dis );
+        assert( it != s_space.end( ) );
+        auto pos = * it;
+        vec[ pos.y ][ pos.x ]->pass( shared_ptr< point >( fact.food_fact( * this, move( pos ) ) ) );
+      }
+      return true;
+    }
+
   }
 
   ostream & operator << ( ostream & os, env & e )
